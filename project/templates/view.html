@@ -1,0 +1,27 @@
+{% extends 'home_base.html' %}
+
+{% block title %}View{% endblock %} 
+
+{% block content %}
+
+    <div class="container">
+       <h4>{{prompt}}</h4>
+        <p>{{response}}</p>
+        <hr>
+        
+        {% if feedback_general %}
+        <h4>Feedback </h4>
+        <h5>Specific Feedback</h5>
+        <h6>{{question}}</h6>
+        <p>{{feedback_specific}}</p>
+        <h5>General Feedback</h5>
+        <p>{{feedback_general}}</p>
+        {% endif %}
+    </div>
+{% endblock %}
+
+    {% block script %}
+    <script>
+	  </script>
+{% endblock %}
+

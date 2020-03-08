@@ -1,0 +1,126 @@
+{% extends 'home_base.html' %}
+
+{% block title %}Feedback{% endblock %} 
+{% block styling %}
+  <style>
+	#overAlert{
+		display: none;
+	}
+		
+	#successAlert{
+		display: none;
+	}
+	
+	#underAlert{
+		display: none;
+	}
+	
+	#questionAlert{
+		display: none;
+	}
+  </style>
+{% endblock %}
+{% block content %}
+
+    <div class="container text-center my-4">
+    	<div class="alert alert-danger" id="overAlert" role="alert">
+		    You are over the word limit for your general feedback. Please make adjustments to be under it.
+    	</div>
+    	<div class="alert alert-danger" id="underAlert" role="alert">
+		    You are under the word limit for your general feedback. Please make adjustments to reach 100 words.
+    	</div>
+    	<div class="alert alert-success" id="successAlert" role="alert">
+    		Your feedback has been saved. Don't forget to submit once finished.
+    	</div>
+    	<div class="alert alert-danger" id="questionAlert" role="alert">
+    		Please stay within the world count for the specific feedback.
+    	</div>
+      <h4>Prompt: {{prompt}}</h4>
+      <p>{{content}}</p>
+      <hr>
+      <h5>{{question}}</h5>
+    <div class="form-group">
+      <label for="response">Please answer the writer's question. Stay between 50 and 100 words. Words remaining: <span id="questionRemaining">100</span></label>
+      <textarea class="form-control" oninput="wordCountExceeds('questionRemaining', 'questionResponse', 100)" id="questionResponse" rows="3">{{written_specific}}</textarea>
+    </div>
+      <div class="form-group">
+      <label for="response">Leave other general feedback. Stay between 100 and 200 words. You can discuss the ideas, the style, or anything else that can be helpful to the other writer. Words remaining: <span id="remaining">200</span></label>
+      <textarea class="form-control" oninput="wordCountExceeds('remaining', 'response', 200)" id="response" rows="10">{{written_general}}</textarea>
+    </div>
+
+    <button type="button" class="btn btn-success btn-lg" onclick="send(0)">Save</button>
+    <button type="button" class="btn btn-primary btn-lg" onclick="send(1)">Submit</button>
+    </div>
+{% endblock %}
+
+    {% block script %}
+    <script>
+      // counts the number of words entered by the user
+      function getWordCount(id){
+          s = document.getElementById(id).value;
+        	s = s.replace(/(^\s*)|(\s*$)/gi,"");
+        	s = s.replace(/[ ]{2,}/gi," ");
+        	s = s.replace(/\n /,"\n");
+        	var count = s.split(' ').length;
+            return count;
+      }
+      
+      // alerts user if count has been exceeded
+      function wordCountExceeds(countId, colorId, limit){
+          var count = getWordCount(colorId);
+          document.getElementById(countId).innerHTML = limit - count;
+          if(count > limit){
+            document.getElementById(colorId).style.backgroundColor = "#FFCCCC";
+          }else{
+            document.getElementById(colorId).style.backgroundColor = "";
+          }
+      }
+	  
+	  function send(submitting){
+		// submitting is a boolean
+		
+		var responseWords = getWordCount("response");
+		var questionWords = getWordCount("questionResponse");
+		
+		if(submitting && questionWords > 100){
+        	flashAlert("questionAlert");
+		}
+		else if(submitting && questionWords < 50){
+    		flashAlert("questionAlert");
+    	}
+    	else if(submitting && responseWords > 200){
+    		flashAlert("overAlert");
+		}
+		else if(submitting && responseWords < 100){
+    		flashAlert("underAlert");
+    	}
+		else{
+		    const response = document.getElementById("response");
+		    const specificResponse = document.getElementById("questionResponse");
+     		$.ajax({
+    		  type: 'POST',
+    		  url: 'send_feedback',
+    		  data: {content: response.value, specific: specificResponse.value, submitting: submitting}
+            })
+            .done(function(data) {
+                if(data['result'] == "saved"){
+                    flashAlert("successAlert");
+                }
+                else if(data['result'] == "submitted"){
+                    window.location.href = "dashboard";
+                }
+    		});
+	  }}
+	  
+	  function flashAlert(id){
+	   $("#"+id).show();
+		setTimeout(function() {
+            $("#"+id).hide();
+        }, 2000);
+	  }
+	  
+	  wordCountExceeds('remaining', 'response', 200);
+	  wordCountExceeds('questionRemaining', 'questionResponse', 100);
+	  </script>
+{% endblock %}
+

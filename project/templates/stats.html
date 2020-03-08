@@ -1,0 +1,401 @@
+{% extends 'dashboard_base.html' %}
+{% block title %}Stats{% endblock %}
+{% block styling %}
+  <style>
+	#errorAlert{
+		display: none;
+	}
+		
+	#successAlert{
+		display: none;
+	}
+  </style>
+{% endblock %}
+
+{% block content %}
+	<!-- SAT II Prediction Modal -->
+      <div class="modal fade" id="result" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">SAT II Estimate</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body" id="resultText">
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+	
+	
+<template id="template">
+    <div class = "form-group">
+	<label>Enter an SAT Subject Test score</label>
+	<input class="form-control sat2entry" type="number" placeholder="750" step="5" min="200" max="800">
+	</div>
+</template>
+    
+	
+<div class = "container">
+	<form class="py-4">
+	<div class="alert alert-danger" id="errorAlert" role="alert">
+		You have errors in your entries. Please fix the highlighted fields!
+	</div>
+	<div class="alert alert-success" id="successAlert" role="alert">
+		Your data has been saved successfully.
+	</div>
+	<div class="form-group">
+		<label for="gpa">Unweighted GPA on a 4.0 scale (2 decimal places preferred)</label>
+		<input class="form-control" id="gpa" type="number" placeholder="3.82" step="0.01" min="0.00" max="4.00" value="{{current_user.gpa if current_user.gpa != None}}">
+	  </div>
+	  
+	  <div class="form-group">
+		<label for="actorsat">Would you like to enter the SAT or ACT?</label>
+		<select class="form-control" id="actorsat" onchange = "test_func(value);">
+		  <option value='-5'>Not Selected</option>
+		  <option value='1'
+		  {% if current_user.test != None and current_user.test >= 400 %}
+			selected
+			{% endif %}
+		  >SAT (1600 scale)</option>
+		  <option value='2'
+		  {% if current_user.test != None and current_user.test <= 36 %}
+			selected
+			{% endif %}
+		  >ACT (36 scale)</option>
+		</select>
+		</div>
+		
+		<div class = "form-group" id="satdiv" style="
+		{% if not (current_user.test != None and current_user.test >= 400) %}
+			display: none		
+	    {% endif %}
+		">
+		<label for="sat">SAT on a 1600 scale</label>
+		<input class="form-control" id="sat" type="number" placeholder="1480" step="10" min="400" max="1600" value="{{current_user.test if current_user.test != None and current_user.test >= 400}}">
+		</div>
+		
+		<div class = "form-group" id="actdiv" style="
+		{% if not (current_user.test != None and current_user.test <= 36) %}
+			display: none		
+	    {% endif %}
+		">
+		<label for="act">ACT on a 36 scale</label>
+		<input class="form-control" id="act" type="number" placeholder="32" step="1" min="1" max="36" value="{{current_user.test if current_user.test != None and current_user.test <= 36}}">
+		</div>
+	  
+	  
+	  <div class="form-group" id="sat2selector">
+		<label for="sat2select">How many SAT Subject Tests would you like to enter?</label>
+		<select class="form-control" id="sat2select" onchange="sat2selection(value);">
+		  <option value="-5">Not Selected</option>
+		  {% for object in sat2_objects %}
+		<option value="{{ object.value }}" 
+		{% if object.value == sat2_values|length %}
+		selected
+		{% endif %}
+		>{{ object.name }}</option>
+		{% endfor %}
+		  <option value="6">Estimate my average based on GPA and ACT/SAT</option>
+		</select>
+	  </div>
+	  
+	  <div id="sat2div">
+	  {% for val in sat2_values %}
+	  <div class = "form-group">
+		<label>Enter an SAT Subject Test score</label>
+		<input class="form-control sat2entry" type="number" placeholder="750" step="1" min="200" max="800" value="{{val}}">
+		</div>
+		{% endfor %}
+	  </div>
+	  
+	  <div class="form-group">
+		<label for="gender">Select Your Gender</label>
+		   <select class="form-control" id="gender">
+				<option value="-5">Not Selected</option>
+				{% for object in gender_objects %}
+				<option value="{{ object.value }}" 
+				{% if object.value == current_user.gender %}
+				selected
+				{% endif %}
+				>{{ object.name }}</option>
+				{% endfor %}
+			</select>
+	  </div>
+	
+	  <div class="form-group">
+		<label for="race">Select Your Race. If more than one, select the one that appears first in the list.</label>
+		<select class="form-control" id="race">
+			<option value="-5">Not Selected</option>
+			{% for object in race_objects %}
+			<option value="{{ object.value }}" 
+			{% if object.value == current_user.race %}
+			selected
+			{% endif %}
+			>{{ object.name }}</option>
+			{% endfor %}
+		</select>
+	  </div>
+	  
+	  <div class = "form-group">
+		<label for="essay">On a scale of 1-10, how compelling are your college essays? If not written yet, how good do you think they will be?</label>
+		<input class="form-control" id="essay" type="number" placeholder="7" step="0.5" min="1" max="10" value="{{current_user.essay if current_user.essay != None}}">
+		</div>
+		
+		<div class = "form-group">
+		<label for="recommendation">Based on your relationship with your teachers and counselor as well as your school performance, how good do you think your letters of recommendation will be, on a scale of 1-10?</label>
+		<input class="form-control" id="recommendation" type="number" placeholder="7" step="0.5" min="1" max="10" value="{{current_user.recommendation if current_user.recommendation != None}}">
+		</div>
+		
+		<div class="form-group">
+		<label for="school">What type of high school do you attend?</label>
+		<select class="form-control" id="school">
+		  <option value="-5">Not Selected</option>
+		  {% for object in school_objects %}
+		<option value="{{ object.value }}" 
+		{% if object.value == current_user.school %}
+		selected
+		{% endif %}
+		>{{ object.name }}</option>
+		{% endfor %}
+		</select>
+	  </div>
+	  
+	  <div class="form-group">
+		<label for="region">Where in the United States are you located?</label>
+		<select class="form-control" id="region">
+		  <option value="-5">Not Selected</option>
+		  {% for object in region_objects %}
+		<option value="{{ object.value }}" 
+		{% if object.value == current_user.region %}
+		selected
+		{% endif %}
+		>{{ object.name }}</option>
+		{% endfor %}
+		</select>
+	  </div>
+	  <button type="button" class="btn btn-primary btn-lg" onclick = "save()">Save Information</button>
+	</form>
+</div>
+{% endblock %}
+	
+	
+{% block script %}	
+	<script>
+	async function save(){
+		//handles saving of stats
+		var errors = false;
+		
+		var gpa = $("#gpa").val();
+		if(gpa == "" || gpa < 0 || gpa > 4.0){
+			errors = true;
+			invalidate($("#gpa"));
+		}
+		else{
+			validate($("#gpa"));
+		}
+		
+		var actorsat = $("#actorsat").val();
+		if(actorsat == -5){
+			errors = true;
+			invalidate($("#actorsat"));
+		}
+		else{
+			validate($("#actorsat"));
+		}
+		
+		if(actorsat == 1){
+			var satact = $("#sat").val();
+			if(satact == "" || satact < 400 || satact > 1600){
+				errors = true;
+				invalidate($("#sat"));
+			}
+			else{
+				validate($("#sat"));
+			}
+		}
+		else if(actorsat == 2){
+			var satact = $("#act").val();
+			if(satact == "" || satact < 1 || satact > 36){
+				errors = true;
+				invalidate($("#act"));
+			}
+			else{
+				validate($("#act"));
+			}
+		}
+	
+		var gender = $("#gender").val();
+		if(gender == -5){
+			errors = true;
+			invalidate($("#gender"));
+		}
+		else{
+			validate($("#gender"));
+		}
+		
+		var race = $("#race").val();
+		if(race == -5){
+			errors = true;
+			invalidate($("#race"));
+		}
+		else{
+			validate($("#race"));
+		}
+		
+		var essay = $("#essay").val();
+		if(essay == "" || essay < 1 || essay > 10){
+			errors = true;
+			invalidate($("#essay"));
+		}
+		else{
+			validate($("#essay"));
+		}
+		
+		var recommendation = $("#recommendation").val();
+		if(recommendation == "" || recommendation < 1 || recommendation > 10){
+			errors = true;
+			invalidate($("#recommendation"));
+		}
+		else{
+			validate($("#recommendation"));
+		}
+		
+		var school = $("#school").val();
+		if(school == -5){
+			errors = true;
+			invalidate($("#school"));
+		}
+		else{
+			validate($("#school"));
+		}
+		
+		var region = $("#region").val();
+		if(region == -5){
+			errors = true;
+			invalidate($("#region"));
+		}
+		else{
+			validate($("#region"));
+		}
+		
+		var sat2_list = [];
+		var sat2num = $("#sat2select").val();
+		if(sat2num == -5){
+    			errors = true;
+    			invalidate($("#sat2select"));
+    	}
+		else if(sat2num == 6){
+    		//waits for propagation of neural network model
+    		var sat2 = await predictSAT2(gpa, satact);
+    		sat2_list.push(sat2);
+		}
+		else{
+    		validate($("#sat2select"));
+    		var sat2sum = 0;
+    		$(".sat2entry").each(function(index) {
+        		 var val = $(this).val();
+        		if(val == "" || val < 200 || val > 800){
+            		errors = true;
+        			invalidate($(this));
+        		}
+        		else{
+        			validate($(this));
+        			sat2sum += parseFloat(val);
+        			sat2_list.push(parseInt(val));
+        		}
+    		});
+    		if(!errors){
+    			var sat2 = Math.round(sat2sum / sat2num);
+    		}
+		}
+				
+		if(errors){
+			$("#successAlert").hide();
+			$("#errorAlert").show();
+			window.scrollTo(0, 0);
+		}
+		else{
+			$("#errorAlert").hide();
+			$.ajax({
+            type: 'POST',
+            url: 'tier',
+            data: {gpa: gpa, act: satact, sat2: sat2, gender: gender, race: race, essay: essay, recommendation: recommendation, school: school, region: region, sat2_list: sat2_list}
+          })	
+          .done(function(data) {
+              $("#successAlert").show();
+              window.scrollTo(0, 0);
+          });
+		}
+		
+
+	}
+	
+	function invalidate(obj){
+		obj.css("background-color", "#ffdddd");
+	}
+	function validate(obj){
+		obj.css("background-color", "");
+	}
+	
+	function test_func(name){
+		if(name == -5){
+			$("#satdiv").hide();
+			$("#actdiv").hide();
+		}
+		else if(name == 1){
+			$("#actdiv").hide();
+			$("#satdiv").show();
+		}
+		else if(name == 2){
+			$("#satdiv").hide();
+			$("#actdiv").show();
+		}
+	}
+	
+	function sat2selection(num){
+        var sat2div = document.getElementById("sat2div");
+    	sat2div.innerHTML = "";
+		if(num != -5 && num != 6){
+    		for(var i=0; i<num; i++){
+    			var temp = document.getElementById("template");
+    			var clon = temp.content.cloneNode(true);
+    			sat2div.appendChild(clon);
+    		}
+		}
+	}
+
+     function predictSAT2(gpa, act){
+         //returns prediction for SAT II
+		 //promise needed because the save function needs to wait for this to finish
+         return new Promise(function(resolve, reject) {
+             $.ajax({
+                  type: 'POST',
+                  url: 'predict_sat2',
+                  data: {gpa: gpa, act: act}
+             })
+             .done(function(data) {
+                 $("#resultText").html(`You chose not to provide us with any SAT Subject Test scores. That is completely fine. For best results, we used your GPA and ACT/SAT to estimate this score based on scores of over 1400 other students. 
+                 <br><br>
+                 Please understand that this is not perfect and is only meant to be an estimate. Tests vary in difficulty and there is separate preparation required for each test. 
+                 <br><br>
+                 Top colleges love seeing SAT Subject Test scores, so we encourage you to take them in the future and add them to your profile once you get your scores!
+                 <br><br>
+                 Our score prediction for you: 
+                <br>
+                 <span style='color:green; font-weight:bold; font-size: 40px'>` + parseInt(data['sat2']) + `</span>`
+                 );
+    			 $('#result').modal();
+                 resolve(data["sat2"]);
+             });
+         
+            });
+     }
+
+	</script>
+{% endblock %}

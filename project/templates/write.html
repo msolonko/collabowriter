@@ -1,0 +1,120 @@
+{% extends 'home_base.html' %}
+
+{% block title %}Write{% endblock %} 
+{% block styling %}
+  <style>
+	#overAlert{
+		display: none;
+	}
+		
+	#successAlert{
+		display: none;
+	}
+	
+	#underAlert{
+		display: none;
+	}
+	#questionAlert{
+		display: none;
+	}
+  </style>
+{% endblock %}
+{% block content %}
+
+    <div class="container text-center my-4">
+    	<div class="alert alert-danger" id="overAlert" role="alert">
+		    You are over the word limit. Please make adjustments to be under it.
+    	</div>
+    	<div class="alert alert-danger" id="underAlert" role="alert">
+		    You are under the word limit. Please make adjustments to reach 200 words.
+    	</div>
+    	<div class="alert alert-success" id="successAlert" role="alert">
+    		Your feedback has been saved. Don't forget to submit once finished.
+    	</div>
+    	<div class="alert alert-danger" id="questionAlert" role="alert">
+    		Please stay within the world count for the question.
+    	</div>
+      <h4>{{prompt}}</h4>
+      <div class="form-group">
+          <label for="response">Please limit your response to be between 200 and 300 words. Words remaining: <span id="remaining">300</span></label>
+          <textarea class="form-control" oninput="wordCountExceeds('remaining', 'response', 300)" data-prompt="{{prompt_id}}" id="response" rows="10">{{content}}</textarea>
+    </div>
+        <hr>
+        <h5>What question would you like to be answered in your feedback?</h5>
+        <div class="form-group">
+            <label for="question">Your question should be between 10 and 30 words. Words remaining: <span id="questionRemaining">30</span></label>
+            <textarea class="form-control" oninput="wordCountExceeds('questionRemaining', 'question', 30)" id="question" rows="1">{{question}}</textarea>
+        </div>
+        <button type="button" class="btn btn-success btn-lg" onclick="send(0)">Save</button>
+        <button type="button" class="btn btn-primary btn-lg" onclick="send(1)">Submit</button>
+    </div>
+{% endblock %}
+
+    {% block script %}
+    <script>
+      // counts the number of words entered by the user
+      function getWordCount(id){
+          s = document.getElementById(id).value;
+        	s = s.replace(/(^\s*)|(\s*$)/gi,"");
+        	s = s.replace(/[ ]{2,}/gi," ");
+        	s = s.replace(/\n /,"\n");
+        	var count = s.split(' ').length;
+            return count;
+      }
+      
+      // alerts user if count has been exceeded
+      function wordCountExceeds(countId, colorId, limit){
+          var count = getWordCount(colorId);
+          document.getElementById(countId).innerHTML = limit - count;
+          if(count > limit){
+            document.getElementById(colorId).style.backgroundColor = "#FFCCCC";
+          }else{
+            document.getElementById(colorId).style.backgroundColor = "";
+          }
+      }
+	  
+	  function send(submitting){
+		// submitting is a boolean
+		
+		var responseWords = getWordCount("response");
+		if(submitting && responseWords > 300){
+    		flashAlert("overAlert");
+		}
+		else if(submitting && responseWords < 200){
+    		flashAlert("underAlert");
+    	}
+		else{
+    		var questionWords = getWordCount("question");
+    		if(submitting && (questionWords < 10 || questionWords > 30)){
+        		flashAlert("questionAlert");
+        		return false;
+    		}
+		    const response = document.getElementById("response");
+		    const question = document.getElementById("question").value; 
+     		$.ajax({
+    		  type: 'POST',
+    		  url: 'send_freewrite',
+    		  data: {content: response.value, submitting: submitting, prompt_id: response.dataset.prompt, question:question}
+            })
+            .done(function(data) {
+                if(data['result'] == "saved"){
+                    flashAlert("successAlert");
+                }
+                else if(data['result'] == "submitted"){
+                    window.location.href = "dashboard";
+                }
+    		});
+	  }}
+	  
+	  function flashAlert(id){
+	   $("#"+id).show();
+		setTimeout(function() {
+            $("#"+id).hide();
+        }, 2000);
+	  }
+	  
+	  wordCountExceeds('remaining', 'response', 300);
+	  wordCountExceeds('questionRemaining', 'question', 30);
+	  </script>
+{% endblock %}
+

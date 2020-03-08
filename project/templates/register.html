@@ -1,0 +1,94 @@
+{% extends 'home_base.html' %}
+
+{% block title %}Register{% endblock %}
+
+{% block styling %}
+    <style>
+        #alert{
+        	display: none;
+    	}
+    </style>
+{% endblock %}
+
+
+{% block content %}
+<div class="container">
+	<form class="pt-4" method="POST" action="">
+		{{ form.hidden_tag() }}
+		<div class="form-group">
+			{{ form.fname.label(class="form-control-label") }}
+					{% if form.fname.errors %}
+						{{ form.fname(class="form-control form-control-lg is-invalid", required=False) }}
+						<div class="invalid-feedback">
+							{% for error in form.fname.errors %}
+								<span>{{ error }}</span>
+							{% endfor %}
+						</div>
+					{% else %}
+						{{ form.fname(class="form-control form-control-lg", required=False) }}
+					{% endif %}
+		</div>
+		<div class="form-group">
+			{{ form.lname.label(class="form-control-label") }}
+					{% if form.lname.errors %}
+						{{ form.lname(class="form-control form-control-lg is-invalid", required=False) }}
+						<div class="invalid-feedback">
+							{% for error in form.lname.errors %}
+								<span>{{ error }}</span>
+							{% endfor %}
+						</div>
+					{% else %}
+						{{ form.lname(class="form-control form-control-lg", required=False) }}
+					{% endif %}
+		</div>
+		<div class="form-group">
+			{{ form.email.label(class="form-control-label") }}
+					{% if form.email.errors %}
+						{{ form.email(class="form-control form-control-lg is-invalid", required=False) }}
+						<div class="invalid-feedback">
+							{% for error in form.email.errors %}
+								<span>{{ error }}</span>
+							{% endfor %}
+						</div>
+					{% else %}
+						{{ form.email(class="form-control form-control-lg", required=False) }}
+			{% endif %}
+		</div>
+		<div class="form-group">
+					{{ form.password.label(class="form-control-label") }}
+					{% if form.password.errors %}
+						{{ form.password(class="form-control form-control-lg is-invalid", required=False) }}
+						<div class="invalid-feedback">
+							{% for error in form.password.errors %}
+								<span>{{ error }}</span>
+							{% endfor %}
+						</div>
+					{% else %}
+						{{ form.password(class="form-control form-control-lg", required=False) }}
+					{% endif %}
+				</div>
+		<div class="form-group">
+					{{ form.confirm_password.label(class="form-control-label") }}
+					{% if form.confirm_password.errors %}
+						{{ form.confirm_password(class="form-control form-control-lg is-invalid", required=False) }}
+						<div class="invalid-feedback">
+							{% for error in form.confirm_password.errors %}
+								<span>{{ error }}</span>
+							{% endfor %}
+						</div>
+					{% else %}
+						{{ form.confirm_password(class="form-control form-control-lg", required=False) }}
+					{% endif %}
+		</div>
+		<div class="form-group">
+			{{ form.submit(class="btn btn-success") }}
+		</div>
+	</form>
+	<hr>
+	<a href="login"><button type="button" class="btn btn-primary">Log In</button></a>
+	<div id="small">
+		<small>Already have an account? Log in!</small>
+	</div>
+</div>
+
+{% endblock %}
